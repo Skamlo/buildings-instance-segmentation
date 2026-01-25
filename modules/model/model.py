@@ -6,7 +6,7 @@ from modules.model.segmentation import UNet
 
 
 class InstanceSegmentation(nn.Module):
-    def __init__(self, crop_size=256):
+    def __init__(self, crop_size=64):
         super().__init__()
         self.detector = RCNN()
         self.segmentor = UNet()
@@ -20,21 +20,18 @@ class InstanceSegmentation(nn.Module):
         2. Inference: Run Detector -> Crop Boxes -> Run Segmentor on Crops.
         """
         
-        # --- 1. Run Detector ---
+        # Run Detector
         # During training, faster-rcnn returns losses automatically
         if self.training and targets is not None:
             det_loss = self.detector(images, targets)
             
-            # For the UNet training, we need to extract crops based on Ground Truth boxes
-            # to ensure the UNet learns to segment correctly aligned objects.
             unet_loss = self._train_step_unet(images, targets)
             
-            # Combine losses
             total_loss = sum(loss for loss in det_loss.values()) + unet_loss
             return total_loss
             
         else:
-            # --- Inference Mode ---
+            # Inference Mode
             detections = self.detector(images)
             
             final_results = []
@@ -116,12 +113,9 @@ class InstanceSegmentation(nn.Module):
             img = images[i]    # Shape (C, H, W)
             
             # 1. Crop Images (One image, multiple boxes)
-            # This works fine with the standard helper
             img_crops = self._crop_and_resize(img, boxes)
             
             # 2. Crop Masks (One mask per box)
-            # We cannot use _crop_and_resize here because that applies ALL boxes to ONE image.
-            # We need to apply Box[k] to Mask[k].
             current_mask_crops = []
             for k, box in enumerate(boxes):
                 x1, y1, x2, y2 = box.int().tolist()
@@ -141,20 +135,19 @@ class InstanceSegmentation(nn.Module):
                 else:
                     cropped_mask = mask[:, y1:y2, x1:x2]
                     cropped_mask = F.interpolate(cropped_mask.unsqueeze(0), size=(self.crop_size, self.crop_size), mode='nearest')
-                    # Remove batch dim added for interpolate -> (1, 256, 256)
                     cropped_mask = cropped_mask.squeeze(0)
                 
                 current_mask_crops.append(cropped_mask)
             
             if len(current_mask_crops) > 0:
-                mask_crops_tensor = torch.stack(current_mask_crops) # (Num_Objs, 1, 256, 256)
+                mask_crops_tensor = torch.stack(current_mask_crops) # (Num_Objs, 1, 64, 64)
                 
                 all_img_crops.append(img_crops)
                 all_mask_crops.append(mask_crops_tensor)
         
         if len(all_img_crops) > 0:
-            batch_crops = torch.cat(all_img_crops, dim=0)       # (Total_N, C, 256, 256)
-            batch_gt_masks = torch.cat(all_mask_crops, dim=0)   # (Total_N, 1, 256, 256)
+            batch_crops = torch.cat(all_img_crops, dim=0)       # (Total_N, C, 64, 64)
+            batch_gt_masks = torch.cat(all_mask_crops, dim=0)   # (Total_N, 1, 64, 64)
             
             # Forward pass U-Net
             pred_masks = self.segmentor(batch_crops)

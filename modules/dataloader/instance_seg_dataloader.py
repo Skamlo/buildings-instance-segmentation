@@ -4,12 +4,16 @@ from modules.dataset.instance_seg_dataset import InstanceSegDataset
 
 
 class InstanceSegDataloader(DataLoader):
-    def __init__(self, root_dir, batch_size=2, *args, **kwargs):
-        transform = T.Compose([T.ToTensor()])
+    def __init__(self, dataset: InstanceSegDataset, batch_size=2, shuffle=True, num_workers=2, **kwargs):
+        def collate_fn(batch):
+            return tuple(zip(*batch))
 
-        dataset = InstanceSegDataset(root_dir, transforms=transform)
-
-        collate_fn = lambda batch: tuple(zip(*batch))
-
-        super().__init__(dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn, *args, **kwargs)
+        super().__init__(
+            dataset, 
+            batch_size=batch_size, 
+            shuffle=shuffle, 
+            collate_fn=collate_fn, 
+            num_workers=num_workers,
+            **kwargs
+        )
         

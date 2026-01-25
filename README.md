@@ -19,3 +19,5 @@ Sources:
 - https://www.youtube.com/watch?v=nJzQDpppFj0
 - https://www.youtube.com/watch?v=ZytVRaNE4cA
 - https://www.youtube.com/watch?v=2w7Enf0Lo9A
+- https://arxiv.org/pdf/1506.01497
+- https://www.youtube.com/watch?v=2w7Enf0Lo9A

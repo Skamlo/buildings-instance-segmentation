@@ -7,74 +7,68 @@ from torch.utils.data import Dataset
 
 
 class InstanceSegDataset(Dataset):
-    def __init__(self, images_path, masks_path, metadata_path, transforms=None):
-        self.images_path = images_path
-        self.masks_path = masks_path
+    def __init__(self, images_paths, masks_paths, metadata_path, transforms=None):
+        self.images_paths = images_paths
+        self.masks_paths = masks_paths
         self.transforms = transforms
-
-        # Load metadata JSON
+        
         with open(metadata_path, 'r') as f:
             self.metadata = json.load(f)
 
-        # Get file list and ensure we only keep files that exist in metadata
-        all_imgs = sorted(os.listdir(self.images_path))
-        self.imgs = []
-        for img_name in all_imgs:
-            img_id = os.path.splitext(img_name)[0]
-            if img_id in self.metadata:
-                self.imgs.append(img_name)
-        
-        # Assume masks follow the same naming convention as images
-        self.masks = [img_name.replace(os.path.splitext(img_name)[1], ".png") for img_name in self.imgs]
-
     def __getitem__(self, idx):
-        # 1. Identify IDs and Paths
-        img_name = self.imgs[idx]
-        img_id = os.path.splitext(img_name)[0]
-        
-        img_path = os.path.join(self.images_path, img_name)
-        mask_path = os.path.join(self.masks_path, self.masks[idx])
-        
-        # 2. Load Image and Instance Mask
+        img_path = self.images_paths[idx]
+        mask_path = self.masks_paths[idx]
+        img_id = os.path.splitext(os.path.basename(img_path))[0]
+
+        # 1. Load Image and Global Semantic Mask
         img = Image.open(img_path).convert("RGB")
-        mask = np.array(Image.open(mask_path)) # 0=BG, 1=Obj1, 2=Obj2...
+        semantic_mask = np.array(Image.open(mask_path))
+        if semantic_mask.max() > 1:
+            semantic_mask = (semantic_mask > 127).astype(np.float32)
 
-        # 3. Pull Boxes from Metadata
-        # Format in JSON: [xmin, ymin, xmax, ymax]
-        meta_objects = self.metadata[img_id]
-        boxes = []
+        final_boxes = []
+        final_masks = []
+        
+        # 2. Extract Boxes (Handle images not in metadata)
+        meta_objects = self.metadata.get(img_id, [])
+        
         for obj in meta_objects:
-            boxes.append(obj["box"])
-        
-        boxes = torch.as_tensor(boxes, dtype=torch.float32)
+            x, y, w, h = obj["box"]
+            xmin, ymin, xmax, ymax = x, y, x + w, y + h
+            
+            instance_mask = np.zeros_like(semantic_mask)
+            ix1, iy1, ix2, iy2 = int(xmin), int(ymin), int(xmax), int(ymax)
+            
+            h_img, w_img = semantic_mask.shape
+            ix1, ix2 = max(0, ix1), min(w_img, ix2)
+            iy1, iy2 = max(0, iy1), min(h_img, iy2)
+            
+            instance_mask[iy1:iy2, ix1:ix2] = semantic_mask[iy1:iy2, ix1:ix2]
+            
+            final_boxes.append([xmin, ymin, xmax, ymax])
+            final_masks.append(instance_mask)
 
-        # 4. Process Masks
-        # We split the multi-value mask into a binary stack (N, H, W)
-        obj_ids = np.unique(mask)
-        obj_ids = obj_ids[1:] # Remove background 0
-        
-        # Create binary masks for each instance
-        masks = mask == obj_ids[:, None, None]
-        masks = torch.as_tensor(masks, dtype=torch.uint8)
-
-        # 5. Labels (Always 1 for "Building")
-        num_objs = len(meta_objects)
-        labels = torch.ones((num_objs,), dtype=torch.int64)
-        
-        image_id = torch.tensor([idx])
-
-        # 6. Final Target Dictionary
-        target = {
-            "boxes": boxes,
-            "labels": labels,
-            "masks": masks,
-            "image_id": image_id
-        }
+        # 3. Convert to Tensors
+        if len(final_masks) > 0:
+            masks = torch.as_tensor(np.stack(final_masks), dtype=torch.float32)
+            boxes = torch.as_tensor(final_boxes, dtype=torch.float32)
+            labels = torch.ones((len(final_boxes),), dtype=torch.int64)
+        else:
+            masks = torch.zeros((0, semantic_mask.shape[0], semantic_mask.shape[1]), dtype=torch.float32)
+            boxes = torch.zeros((0, 4), dtype=torch.float32)
+            labels = torch.zeros((0,), dtype=torch.int64)
 
         if self.transforms:
             img = self.transforms(img)
 
+        target = {
+            "boxes": boxes,
+            "labels": labels,
+            "masks": masks, 
+            "image_id": torch.tensor([idx])
+        }
+
         return img, target
 
     def __len__(self):
-        return len(self.imgs)
+        return len(self.images_paths)

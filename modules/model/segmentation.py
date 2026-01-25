@@ -33,10 +33,10 @@ class UNet(nn.Module):
         
         # We slice ResNet to get intermediate feature maps for skip connections
         self.enc1 = nn.Sequential(resnet.conv1, resnet.bn1, resnet.relu) # 64 channels
-        self.enc2 = nn.Sequential(resnet.maxpool, resnet.layer1)       # 64 channels
-        self.enc3 = resnet.layer2                                      # 128 channels
-        self.enc4 = resnet.layer3                                      # 256 channels
-        self.enc5 = resnet.layer4                                      # 512 channels
+        self.enc2 = nn.Sequential(resnet.maxpool, resnet.layer1)         # 64 channels
+        self.enc3 = resnet.layer2                                        # 128 channels
+        self.enc4 = resnet.layer3                                        # 256 channels
+        self.enc5 = resnet.layer4                                        # 512 channels
 
         # --- Decoder ---
         self.up1 = nn.ConvTranspose2d(512, 256, kernel_size=2, stride=2)
