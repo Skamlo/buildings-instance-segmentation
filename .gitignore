@@ -212,6 +212,9 @@ ignore
 # Data folder
 data/*
 !data/.gitkeep
+!data/scraping
+data/scraping/*
+!data/scraping/scrape.py
 
 # Models folder
 models/*

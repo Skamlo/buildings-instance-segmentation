@@ -1,6 +1,6 @@
 # Buildings Instance Segmentation
 
-Task:
+## Task:
 
 - Problem: Instance segmentation - 3 pk.
 - Solving an additional problem (loss function for object detection) - 1 pk.
@@ -11,7 +11,13 @@ Task:
 - Docker - 1 pk.
 - DVC - 2 pk.
 
-Sources:
+## Sources:
+
+### Daa:
+
+- https://gpcv.whu.edu.cn/data/building_dataset.html
+
+### Informations:
 
 - https://www.youtube.com/watch?v=4tkgOzQ9yyo
 - https://arxiv.org/abs/1703.06870
