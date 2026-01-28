@@ -209,12 +209,11 @@ __marimo__/
 # Ignore folder
 ignore
 
-# Data folder
+# Data
 data/*
-!data/.gitkeep
-!data/scraping
-data/scraping/*
-!data/scraping/scrape.py
+
+# Examples
+examples
 
 # Models folder
 models/*

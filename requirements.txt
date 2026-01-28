@@ -1,0 +1,11 @@
+numpy
+tqdm
+matplotlib
+torch
+torchvision
+pillow
+shapely
+pandas
+geopandas
+osmnx
+colorsys
