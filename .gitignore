@@ -209,12 +209,14 @@ __marimo__/
 # Ignore folder
 ignore
 
-# Data
-data/history.json
-
 # Examples
 examples
 
 # Models folder
 models/*
 !models/.gitkeep
+
+# DVC
+dvc.json
+myremote-credentials.json
+.gdrive
