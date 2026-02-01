@@ -1,0 +1,6 @@
+outs:
+- md5: 96f1cd91e6250b81320414e340323fe3.dir
+  size: 15822191415
+  nfiles: 5001
+  hash: md5
+  path: scraping
