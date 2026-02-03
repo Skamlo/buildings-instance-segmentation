@@ -1,0 +1,6 @@
+outs:
+- md5: 7e7200bfda813ff696f6c0d167905f48.dir
+  size: 2753290976
+  nfiles: 4
+  hash: md5
+  path: instance_segmentation
