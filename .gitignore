@@ -212,10 +212,6 @@ ignore
 # Examples
 examples
 
-# Models folder
-models/*
-!models/.gitkeep
-
 # DVC
 dvc.json
 myremote-credentials.json
